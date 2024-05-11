@@ -162,7 +162,7 @@ screen.append(gauge_group)
 while True:
     # update boost readout value every 100ms
     if (last_loop - start_boost_loop > 100):
-        # boost_pressure = boost_raw.value / 1000 - 13.05
+        boost_pressure = boost_raw.value / 1000 - 13.05
         boost_readout.text = str(f'{boost_pressure:5.1f}')
 
         if (boost_pressure > 0):
