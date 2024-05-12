@@ -11,7 +11,7 @@ from analogio import AnalogIn
 from fourwire import FourWire
 
 def getTempFromADC(thermistor):
-    VIN = 3.3
+    if (thermistor == 0): return 0
     R0 = 10000
     rT = R0 * (65535 / thermistor - 1)
     logRT = math.log(rT)
@@ -45,7 +45,7 @@ display_bus = FourWire(
 # init the measurement vars
 boost_raw = AnalogIn(board.A0)
 boost_pressure = boost_raw.value / 1000 - 13.043
-max_boost = 8
+max_boost = 9
 max_vacuum = -10
 thermistor = AnalogIn(board.A2)
 oil_temp = getTempFromADC(thermistor.value)
@@ -72,7 +72,7 @@ display = ST7735R(
 display.root_group = screen
 
 color_bitmap = displayio.Bitmap(display_width, display_height, 1)
-display.rotation = 180
+# display.rotation = 180
 
 # common vars shared by both gauges
 saira = bitmap_font.load_font("fonts/saira-bold-italic-28pt.bdf")
@@ -80,26 +80,27 @@ sairaSmall = bitmap_font.load_font("fonts/saira-semibold-10pt.bdf")
 label_color = 0xff0303
 labels_x_pos = 1
 units_x_pos = display_width - 7
-bar_height = 37
+bar_height = 42
 bar_palette = displayio.Palette(2)
 bar_palette[0] = 0x0000aa
 bar_palette[1] = 0xff0303
 
 
 # === build boost gauge ===
+boost_readout_y_pos = display_height / 2 - 6
+
 boost_label = label.Label(sairaSmall, text="BOOST", color=label_color)
 boost_label.anchor_point = (0.0, 0.0)
 boost_label.anchored_position = (labels_x_pos, 5)
-boost_bar_y_position = int(display_height / 2 - bar_height - 5)
 
 boost_units = label.Label(sairaSmall, text="psi", color=0xffffff)
 boost_units.anchor_point = (1.0, 1.0)
-boost_units.anchored_position = (units_x_pos, display_height / 2 - 7)
+boost_units.anchored_position = (units_x_pos, boost_readout_y_pos)
 
 boost_bar = vectorio.Rectangle(
     pixel_shader = bar_palette,
     x = 0,
-    y = boost_bar_y_position,
+    y = int(boost_readout_y_pos - 16 - bar_height / 2),
     width = 1,
     height = bar_height,
     color_index = 0,
@@ -107,7 +108,7 @@ boost_bar = vectorio.Rectangle(
 vacuum_bar = vectorio.Rectangle(
     pixel_shader = bar_palette,
     x = display_width - 1,
-    y = boost_bar_y_position,
+    y = int(boost_readout_y_pos - 16 - bar_height / 2),
     width = 1,
     height = bar_height,
     color_index = 1
@@ -119,7 +120,7 @@ boost_readout = label.Label(
     color=0xffffff
 )
 boost_readout.anchor_point = (1.0, 1.0)
-boost_readout.anchored_position = (display_width - 32, display_height / 2 - 10)
+boost_readout.anchored_position = (display_width - 32, boost_readout_y_pos - 3)
 
 bar_group.append(boost_bar)
 bar_group.append(vacuum_bar)
@@ -159,9 +160,20 @@ gauge_group.append(oil_temp_readout)
 screen.append(bar_group)
 screen.append(gauge_group)
 
+# --- testing ---
+# counting_up = True
+
+# update loop
 while True:
     # update boost readout value every 100ms
     if (last_loop - start_boost_loop > 100):
+        # --- testing ---
+        # if (counting_up):
+        #     boost_pressure += .3
+        #     if (boost_pressure >= max_boost): counting_up = False
+        # else:
+        #     boost_pressure -= .3
+        #     if (boost_pressure <= max_boost * -1): counting_up = True
         boost_pressure = boost_raw.value / 1000 - 13.05
         boost_readout.text = str(f'{boost_pressure:5.1f}')
 
