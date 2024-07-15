@@ -27,6 +27,14 @@ def getTempFromADC(thermistor):
 
     return fahrenheit
 
+def getBoostOffset(boost_raw):
+    offset_samples = [0] * 100
+    for i in range(100):
+        offset_samples[i] = boost_raw.value / 1000
+
+    boost_offset = sum(offset_samples) / len(offset_samples)
+    return boost_offset
+
 # Release any resources currently in use for the displays
 displayio.release_displays()
 
@@ -36,15 +44,16 @@ tft_cs = board.GP13
 tft_dc = board.GP12
 tft_reset = board.GP9
 display_bus = FourWire(
-    spi, 
-    command = tft_dc, 
-    chip_select = tft_cs, 
+    spi,
+    command = tft_dc,
+    chip_select = tft_cs,
     reset = tft_reset
 )
 
 # init the measurement vars
 boost_raw = AnalogIn(board.A0)
-boost_pressure = boost_raw.value / 1000 - 13.043
+boost_offset = getBoostOffset(boost_raw)
+boost_pressure = boost_raw.value / 1000 - boost_offset
 max_boost = 9
 max_vacuum = -10
 thermistor = AnalogIn(board.A2)
@@ -63,10 +72,10 @@ screen = displayio.Group()
 bar_group = displayio.Group()
 gauge_group = displayio.Group()
 display = ST7735R(
-    display_bus, 
-    width = display_width, 
-    height = display_height, 
-    colstart = 2, 
+    display_bus,
+    width = display_width,
+    height = display_height,
+    colstart = 2,
     rowstart = 3
 )
 display.root_group = screen
@@ -136,7 +145,7 @@ oil_temp_label = label.Label(sairaSmall, text="OIL TEMP", color=label_color)
 oil_temp_label.anchor_point = (0.0, 0.0)
 oil_temp_label.anchored_position = (labels_x_pos, display_height / 2 + 5)
 
-# since the startup temp is unknown, hide these units and the associated readout 
+# since the startup temp is unknown, hide these units and the associated readout
 # on initial render by setting their color to 0x000000
 # the actual display color will be determined in the first iteration of the update loop below
 oil_temp_units = label.Label(sairaSmall, text="°F", color=0x000000)
@@ -144,8 +153,8 @@ oil_temp_units.anchor_point = (1.0, 1.0)
 oil_temp_units.anchored_position = (units_x_pos, display_height - 10)
 
 oil_temp_readout = label.Label(
-    saira, 
-    text=str(int(oil_temp)), 
+    saira,
+    text=str(int(oil_temp)),
     color=0x000000
 )
 oil_temp_readout.anchor_point = (1.0, 1.0)
@@ -174,7 +183,7 @@ while True:
         # else:
         #     boost_pressure -= .3
         #     if (boost_pressure <= max_boost * -1): counting_up = True
-        boost_pressure = boost_raw.value / 1000 - 13.05
+        boost_pressure = boost_raw.value / 1000 - boost_offset
         boost_readout.text = str(f'{boost_pressure:5.1f}')
 
         if (boost_pressure > 0):
